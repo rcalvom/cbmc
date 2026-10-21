@@ -336,11 +336,41 @@ void dfcc_infer_loop_assigns_for_function(
   auto malloc_body = goto_functions.function_map.extract(irep_idt("malloc"));
   auto free_body = goto_functions.function_map.extract(irep_idt("free"));
 
+  // Callees that are already instrumented take the write set as their last
+  // parameter, which calls in code that is not instrumented yet (this copy,
+  // or callees instrumented later) do not pass. Inlining binds arguments to
+  // parameters by position, so for a variadic callee the first variadic
+  // argument would be bound to the write set parameter. Hide that parameter
+  // while inlining, as the write set plays no role in the inference.
+  std::vector<
+    std::pair<goto_functiont *, goto_functiont::parameter_identifierst>>
+    hidden_write_set_parameters;
+  for(auto &entry : goto_functions.function_map)
+  {
+    const symbolt *function_symbol;
+    if(ns.lookup(entry.first, function_symbol))
+      continue;
+    const code_typet &function_type = to_code_type(function_symbol->type);
+    auto &parameter_identifiers = entry.second.parameter_identifiers;
+    if(
+      function_type.has_ellipsis() && !parameter_identifiers.empty() &&
+      !function_type.parameters().empty() &&
+      function_type.parameters().back().get_base_name() ==
+        "__write_set_to_check")
+    {
+      hidden_write_set_parameters.emplace_back(
+        &entry.second, parameter_identifiers);
+      parameter_identifiers.pop_back();
+    }
+  }
+
   // Inline all function calls in goto_function_copy; this is best-effort
   // inlining, we can safely ignore warnings here.
   null_message_handlert null_message_handler;
   goto_program_inline(
     goto_functions, goto_function_copy.body, ns, null_message_handler);
+  for(auto &hidden : hidden_write_set_parameters)
+    hidden.first->parameter_identifiers = hidden.second;
   // Update the body to make sure all goto correctly jump to valid targets.
   goto_function_copy.body.update();
   // Build the loop graph after inlining.
