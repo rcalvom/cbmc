@@ -1,0 +1,11 @@
+CORE no-new-smt
+main.c
+--trace
+^PRINT p1 $
+^EXIT=10$
+^SIGNAL=0$
+--
+^warning: ignoring
+--
+A %p conversion without an argument used to read past the end of the operand
+list when printing the trace.
