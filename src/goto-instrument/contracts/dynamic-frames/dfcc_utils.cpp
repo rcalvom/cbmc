@@ -153,6 +153,27 @@ static void add_parameter(const symbolt &symbol, code_typet &code_type)
   parameters.insert(parameters.end(), parameter);
 }
 
+void dfcc_utilst::add_write_set_argument(
+  const exprt &function,
+  exprt::operandst &arguments,
+  const exprt &write_set)
+{
+  const code_typet &code_type = to_code_type(function.type());
+  // The type at the call site may or may not already carry the write set
+  // parameter: count the declared parameters without it.
+  std::size_t declared = 0;
+  for(const auto &parameter : code_type.parameters())
+  {
+    if(parameter.get_base_name() != "__write_set_to_check")
+      ++declared;
+  }
+
+  if(code_type.has_ellipsis() && arguments.size() > declared)
+    arguments.insert(arguments.begin() + declared, write_set);
+  else
+    arguments.push_back(write_set);
+}
+
 void dfcc_utilst::add_parameter(
   goto_modelt &goto_model,
   const symbolt &symbol,

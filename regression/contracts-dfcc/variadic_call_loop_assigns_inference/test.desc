@@ -1,0 +1,12 @@
+CORE dfcc-only
+main.c
+--dfcc main --apply-loop-contracts
+^EXIT=0$
+^SIGNAL=0$
+^VERIFICATION SUCCESSFUL$
+--
+^Invariant check failed
+--
+Loop assigns inference inlines the callees of the function into a copy of it.
+printf is instrumented first and takes the write set as an extra parameter, so
+the variadic argument of the call used to be bound to it, and inlining aborted.

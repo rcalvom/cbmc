@@ -1,0 +1,11 @@
+CORE dfcc-only
+main.c
+--dfcc main --enforce-contract foo
+^\[w.assigns.\d+\] line 3 Check that \*p is assignable: FAILURE$
+^EXIT=10$
+^SIGNAL=0$
+^VERIFICATION FAILED$
+--
+--
+Same as variadic_call_write_set, but *p is not in the write set of foo, so the
+write in the variadic callee must be reported.

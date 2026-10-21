@@ -823,7 +823,8 @@ void dfcc_instrumentt::instrument_fptr_call_instruction_dynamic_lookup(
     payload.add(goto_programt::make_incomplete_goto(cond, target_location));
   code_function_callt call_inst(
     target->call_lhs(), target->call_function(), target->call_arguments());
-  call_inst.arguments().push_back(write_set);
+  dfcc_utilst::add_write_set_argument(
+    call_inst.function(), call_inst.arguments(), write_set);
   payload.add(goto_programt::make_function_call(call_inst, target_location));
   auto goto_end_inst = payload.add(
     goto_programt::make_incomplete_goto(true_exprt(), target_location));
@@ -853,7 +854,8 @@ void dfcc_instrumentt::instrument_call_instruction(
            to_symbol_expr(target->call_function()).identifier()))
       {
         // pass write set argument only if function is known to be instrumented
-        target->call_arguments().push_back(write_set);
+        dfcc_utilst::add_write_set_argument(
+          target->call_function(), target->call_arguments(), write_set);
       }
     }
     else

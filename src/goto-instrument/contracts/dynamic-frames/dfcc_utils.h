@@ -81,6 +81,16 @@ struct dfcc_utilst
     const std::string &base_name,
     const typet &type);
 
+  /// \brief Adds \p write_set to the \p arguments of a call to \p function.
+  /// Instrumented functions take the write set as their last declared
+  /// parameter. For a variadic function, the argument therefore goes right
+  /// after the arguments of the declared parameters, before the variadic
+  /// arguments; otherwise it is appended.
+  static void add_write_set_argument(
+    const exprt &function,
+    exprt::operandst &arguments,
+    const exprt &write_set);
+
   /// \brief Adds the given symbol as parameter to the function symbol's
   /// code_type. Also adds the corresponding parameter to its goto_function if
   /// it exists in the function map of the goto model.

@@ -1,0 +1,11 @@
+CORE dfcc-only
+main.c
+--dfcc main --enforce-contract foo
+^\[w.assigns.\d+\] line 3 Check that \*p is assignable: SUCCESS$
+^EXIT=0$
+^SIGNAL=0$
+^VERIFICATION SUCCESSFUL$
+--
+--
+The write set argument of a call to a variadic function must be bound to the
+write set parameter, not to the first variadic argument (here x).
