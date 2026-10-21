@@ -293,6 +293,8 @@ void printf_formattert::process_format(std::ostream &out)
     break;
 
   case 'p':
+    if(next_operand == operands.end())
+      break;
     // TODO: hexadecimal output
     out << format_constant(make_type(*(next_operand++), size_type()));
     break;
