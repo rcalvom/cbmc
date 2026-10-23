@@ -124,6 +124,11 @@ decision_proceduret::resultt smt2_dect::dec_solve(const exprt &assumption)
 
   case solvert::Z3:
     argv = {solver_binary_name("z3"), "-smt2", temp_file_problem()};
+    // Z3's default tactic eliminates the Boolean variables naming quantified
+    // formulas, and its model evaluator then returns the quantified formula
+    // as their value, which we cannot parse. The smt tactic keeps them.
+    if(has_quantifiers)
+      argv.push_back("tactic.default_tactic=smt");
     break;
 
   case solvert::GENERIC:

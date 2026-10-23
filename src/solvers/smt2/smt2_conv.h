@@ -70,6 +70,8 @@ public:
   bool use_datatypes = false;
   bool use_lambda_for_array = false;
   bool emit_set_logic = true;
+  /// Set once a quantifier has been converted.
+  bool has_quantifiers = false;
 
   exprt handle(const exprt &expr) override;
   void set_to(const exprt &expr, bool value) override;

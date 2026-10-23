@@ -1,0 +1,17 @@
+CORE broken-cprover-smt-backend no-new-smt
+main.c
+--z3
+^\[main\.assertion\.1\] line \d+ a zero at or after n: FAILURE$
+^\[main\.assertion\.2\] line \d+ n is not 3: FAILURE$
+^VERIFICATION FAILED$
+^EXIT=10$
+^SIGNAL=0$
+--
+non-constant value
+^VERIFICATION ERROR$
+--
+When the model leaves a quantified formula unconstrained, Z3 (default tactic)
+eliminates the Boolean that names it and returns the quantified formula as its
+value on (get-value ...), which cbmc reported as "SMT2 solver returned
+non-constant value" and VERIFICATION ERROR. Problems with quantifiers are
+now solved with Z3 tactic.default_tactic=smt, which keeps those Booleans.
