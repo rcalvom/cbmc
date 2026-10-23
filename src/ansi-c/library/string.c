@@ -189,15 +189,38 @@ __CPROVER_HIDE:;
       (src >= dst + n) || (dst >= src + n),
     "strncpy src/dst overlap");
   __CPROVER_size_t i = 0;
+#ifndef LIBRARY_CHECK
+  // ghost: index where the terminator was copied, n while none was
+  __CPROVER_size_t z = n;
+#endif
   char ch;
   _Bool end;
 
   // We use a single loop to make bounds checking etc easier.
   // Note that strncpy _always_ writes 'n' characters into 'dst'.
   for(end = 0; i < n; i++)
+#ifndef LIBRARY_CHECK
+    // clang-format off
+    __CPROVER_assigns(i, z, ch, end, __CPROVER_object_upto(dst, n))
+    __CPROVER_loop_invariant(
+      i <= n &&
+      (end ? (z < i && z < (__CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src)) && src[z] == 0) : z == n) &&
+      (end || n <= (__CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src)) ||
+       __CPROVER_exists { __CPROVER_size_t k;
+         i <= k && k < (__CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src)) && src[k] == 0 }) &&
+      __CPROVER_forall { __CPROVER_size_t j;
+        j < i ==> ((j < z && src[j] != 0 && dst[j] == src[j]) ||
+                   (j >= z && dst[j] == 0)) })
+    __CPROVER_decreases(n - i)
+  // clang-format on
+#endif
   {
     ch = end ? 0 : src[i];
     dst[i] = ch;
+#ifndef LIBRARY_CHECK
+    if(!end && ch == (char)0)
+      z = i;
+#endif
     end = end || ch == (char)0;
   }
 #endif
@@ -377,7 +400,21 @@ __CPROVER_HIDE:;
 #else
   __CPROVER_size_t i=0;
   unsigned char ch1, ch2;
-  do
+  // do/while written as while(1) so that the loop can carry a contract
+  while(1)
+#ifndef LIBRARY_CHECK
+    // clang-format off
+    __CPROVER_assigns(i, ch1, ch2)
+    __CPROVER_loop_invariant(
+      i < (__CPROVER_OBJECT_SIZE(s1) - __CPROVER_POINTER_OFFSET(s1)) &&
+      __CPROVER_exists { __CPROVER_size_t k;
+        i <= k && k < (__CPROVER_OBJECT_SIZE(s1) - __CPROVER_POINTER_OFFSET(s1)) && k < (__CPROVER_OBJECT_SIZE(s2) - __CPROVER_POINTER_OFFSET(s2)) &&
+        (s1[k] == 0 || s1[k] != s2[k]) } &&
+      __CPROVER_forall { __CPROVER_size_t j;
+        j < i ==> (s1[j] == s2[j] && s1[j] != 0) })
+    __CPROVER_decreases((__CPROVER_OBJECT_SIZE(s1) - __CPROVER_POINTER_OFFSET(s1)) - i)
+  // clang-format on
+#endif
   {
 #  pragma CPROVER check push
 #  pragma CPROVER check disable "conversion"
@@ -394,8 +431,9 @@ __CPROVER_HIDE:;
       return 1;
 
     i++;
+    if(!(ch1!=0 && ch2!=0))
+      break;
   }
-  while(ch1!=0 && ch2!=0);
   return 0;
 #endif
 }
@@ -476,7 +514,21 @@ __CPROVER_HIDE:;
   unsigned char ch1, ch2;
   if(n == 0)
     return 0;
-  do
+  // do/while written as while(1) so that the loop can carry a contract
+  while(1)
+#ifndef LIBRARY_CHECK
+    // clang-format off
+    __CPROVER_assigns(i, ch1, ch2)
+    __CPROVER_loop_invariant(
+      i < n && i < (__CPROVER_OBJECT_SIZE(s1) - __CPROVER_POINTER_OFFSET(s1)) &&
+      __CPROVER_exists { __CPROVER_size_t k;
+        i <= k && k < (__CPROVER_OBJECT_SIZE(s1) - __CPROVER_POINTER_OFFSET(s1)) && k < (__CPROVER_OBJECT_SIZE(s2) - __CPROVER_POINTER_OFFSET(s2)) &&
+        (s1[k] == 0 || s1[k] != s2[k] || k == n - 1) } &&
+      __CPROVER_forall { __CPROVER_size_t j;
+        j < i ==> (s1[j] == s2[j] && s1[j] != 0) })
+    __CPROVER_decreases(n - i)
+  // clang-format on
+#endif
   {
 #  pragma CPROVER check push
 #  pragma CPROVER check disable "conversion"
@@ -493,8 +545,9 @@ __CPROVER_HIDE:;
       return 1;
 
     i++;
+    if(!(ch1!=0 && ch2!=0 && i<n))
+      break;
   }
-  while(ch1!=0 && ch2!=0 && i<n);
   return 0;
 #endif
 }
@@ -567,7 +620,19 @@ size_t strlen(const char *s)
   return __CPROVER_zero_string_length(s);
   #else
   __CPROVER_size_t len=0;
-  while(s[len]!=0) len++;
+  while(s[len]!=0)
+#ifndef LIBRARY_CHECK
+    // clang-format off
+    __CPROVER_assigns(len)
+    __CPROVER_loop_invariant(
+      len < (__CPROVER_OBJECT_SIZE(s) - __CPROVER_POINTER_OFFSET(s)) &&
+      __CPROVER_exists { __CPROVER_size_t k;
+        len <= k && k < (__CPROVER_OBJECT_SIZE(s) - __CPROVER_POINTER_OFFSET(s)) && s[k] == 0 } &&
+      __CPROVER_forall { __CPROVER_size_t j; j < len ==> s[j] != 0 })
+    __CPROVER_decreases((__CPROVER_OBJECT_SIZE(s) - __CPROVER_POINTER_OFFSET(s)) - len)
+    // clang-format on
+#endif
+    len++;
   return len;
   #endif
 }
@@ -939,6 +1004,17 @@ int memcmp(const void *s1, const void *s2, size_t n)
 
   const unsigned char *sc1=s1, *sc2=s2;
   for(; n!=0; n--)
+#ifndef LIBRARY_CHECK
+    // clang-format off
+    __CPROVER_assigns(n, sc1, sc2, res)
+    __CPROVER_loop_invariant(n <= __CPROVER_loop_entry(n))
+    __CPROVER_loop_invariant(
+      sc1 == __CPROVER_loop_entry(sc1) + (__CPROVER_loop_entry(n) - n))
+    __CPROVER_loop_invariant(
+      sc2 == __CPROVER_loop_entry(sc2) + (__CPROVER_loop_entry(n) - n))
+    __CPROVER_decreases(n)
+  // clang-format on
+#endif
   {
     res = (*sc1++) - (*sc2++);
     if (res != 0)
@@ -967,7 +1043,20 @@ char *strchr(const char *src, int c)
   __CPROVER_size_t i;
   return found?src+i:0;
   #else
-  for(__CPROVER_size_t i=0; ; i++)
+  __CPROVER_size_t i;
+  for(i=0; ; i++)
+#ifndef LIBRARY_CHECK
+    // clang-format off
+    __CPROVER_assigns(i)
+    __CPROVER_loop_invariant(
+      i < (__CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src)) &&
+      __CPROVER_exists { __CPROVER_size_t k;
+        i <= k && k < (__CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src)) && (src[k] == (char)c || src[k] == 0) } &&
+      __CPROVER_forall { __CPROVER_size_t j;
+        j < i ==> (src[j] != (char)c && src[j] != 0) })
+    __CPROVER_decreases((__CPROVER_OBJECT_SIZE(src) - __CPROVER_POINTER_OFFSET(src)) - i)
+  // clang-format on
+#endif
   {
     if(src[i]==(char)c)
       return ((char *)src)+i; // cast away const-ness
